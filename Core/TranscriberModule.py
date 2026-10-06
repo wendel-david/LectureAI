@@ -1,11 +1,12 @@
 from pathlib import Path
 from transformers import pipeline
+from SETTINGS import TranscriberMap
 
 class Transcriber:
     def __init__(self):
         self.transcriber = pipeline(
             task="automatic-speech-recognition",
-            model="openai/whisper-tiny",
+            model=TranscriberMap["model"],
         )
 
     def transcribe_audio(self, path: Path):

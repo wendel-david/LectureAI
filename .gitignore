@@ -27,3 +27,13 @@ transcribe.txt
 # Editors
 .vscode/
 .idea/
+
+# Database
+*.db
+*.db-journal
+
+# Recordings made in the app
+recordings/
+
+# files
+

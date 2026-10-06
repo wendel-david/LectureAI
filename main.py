@@ -1,50 +1,38 @@
-from Modules.TranscriberModule import Transcriber
-from Modules.Utils import Utils
-from Modules.AIModule import AIEngine
+from Core.AIModule import AIEngine
+from Core.DatabaseModule import Database
+from Core.PipelineModule import transcribe_file
+from SETTINGS import SettingsMap, TranscriberMap
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor
-import os
-
-_worker_transcriber = None
 
 
-def _init_worker():
-    global _worker_transcriber
-    _worker_transcriber = Transcriber()
-
-
-def _transcribe_in_worker(path):
-    return _worker_transcriber.transcribe_audio(path)
+def generate_output(db: Database, engine: AIEngine, transcription, instruction: str):
+    response = engine.call_llm(transcription["text"], instruction)
+    db.add_output(transcription["id"], instruction, response.output_text, SettingsMap["model"])
+    return response.output_text
 
 
 def main():
     audio_path = Path("./audios/mlk2.flac")
 
-    tools = Utils()
     engine = AIEngine()
+    transcript = transcribe_file(audio_path)
 
-    chunks = tools.split_audio(tools.convert_to_flac(audio_path))
-
-    max_workers = min(len(chunks), os.cpu_count() or 1)
-    with ProcessPoolExecutor(max_workers=max_workers, initializer=_init_worker) as executor:
-        results = list(executor.map(_transcribe_in_worker, chunks))
-
-    transcript = " ".join(results)
-
-    with open("transcribe.txt", "w") as f:
-        f.write(transcript)
-
-    engine.call_llm(transcript, "summarize")
+    with Database() as db:
+        lecture_id = db.add_lecture(audio_path.stem, audio_path)
+        transcription_id = db.add_transcription(lecture_id, transcript, TranscriberMap["model"])
+        generate_output(db, engine, db.get_transcription(transcription_id), "summarize")
 
 
 def main_testing():
     engine = AIEngine()
 
-    with open("transcribe.txt", "r") as f:
-        transcript = f.read()
+    with Database() as db:
+        transcription = db.get_latest_transcription()
+        if transcription is None:
+            print("No transcriptions in the database yet. Run main() first.")
+            return
 
-    response = engine.call_llm(transcript, "questions")
-    print(response.output_text)
+        print(generate_output(db, engine, transcription, "questions"))
 
 
 if __name__ == "__main__":
