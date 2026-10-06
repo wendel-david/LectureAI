@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+
+# Audio files and generated output
+audios/
+*.flac
+*.m4a
+*.mp3
+*.wav
+transcribe.txt
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
